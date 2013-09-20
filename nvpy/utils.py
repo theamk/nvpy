@@ -147,7 +147,6 @@ def sort_by_modify_date_pinned(a, b):
     else:
         return cmp(float(a.note.get('modifydate', 0)), float(b.note.get('modifydate', 0)))
 
-
 def sort_by_create_date_pinned(a, b):
     if note_pinned(a.note) and not note_pinned(b.note):
         return 1
@@ -155,20 +154,6 @@ def sort_by_create_date_pinned(a, b):
         return -1
     else:
         return cmp(float(a.note.get('createdate', 0)), float(b.note.get('createdate', 0)))
-
-def check_internet_on():
-    """Utility method to check if we have an internet connection.
-
-    slightly adapted from: http://stackoverflow.com/a/3764660/532513
-    """
-    try:
-        urllib2.urlopen('http://74.125.228.100', timeout=1)
-        return True
-
-    except urllib2.URLError:
-        pass
-
-    return False
 
 
 class KeyValueObject:
