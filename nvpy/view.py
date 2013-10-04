@@ -202,6 +202,7 @@ class NotesList(tk.Frame):
     TAGS_COL = 1
     MODIFYDATE_COL = 2
     PINNED_COL = 3
+    GROUP_COL = 4
 
     def __init__(self, master, font_family, font_size, config):
         tk.Frame.__init__(self, master)
@@ -262,6 +263,9 @@ class NotesList(tk.Frame):
             self.cwidth = f.measure(' ')
         self.fonts = [f, italic_font, bold_font]
 
+        self.note_group_func = utils.get_note_group_func(config)
+        self.note_sort_key_func = utils.get_note_sort_key_func(config)
+
     def append(self, note, config):
         """
         @param note: The complete note dictionary.
@@ -271,7 +275,8 @@ class NotesList(tk.Frame):
         tags = note.get('tags')
         modifydate = float(note.get('modifydate'))
         pinned = utils.note_pinned(note)
-        self.note_headers.append((title, tags, modifydate, pinned))
+        group = self.note_group_func(note)
+        self.note_headers.append((title, tags, modifydate, pinned, group))
 
         self.enable_text()
 
@@ -414,6 +419,14 @@ class NotesList(tk.Frame):
         @returns: modifydate as a floating point timestamp.
         """
         return self.note_headers[idx][NotesList.MODIFYDATE_COL]
+
+    def get_group(self, idx):
+        """
+        Return group of idx'th note.
+
+        @returns: group as a string ('' if groups are disabled)
+        """
+        return self.note_headers[idx][NotesList.GROUP_COL]
 
     def idx_to_index_range(self, idx):
         """
@@ -968,9 +981,7 @@ class View(utils.SubjectMixin):
                 list_frame,
                 self.config.list_font_family,
                 self.config.list_font_size,
-                utils.KeyValueObject(background_color=self.config.background_color,
-                    layout=self.config.layout,
-                    print_columns=self.config.print_columns))
+                self.config)
             self.notes_list.pack(fill=tk.BOTH, expand=1)
 
             note_frame = tk.Frame(paned_window, width=400)
@@ -1165,9 +1176,8 @@ class View(utils.SubjectMixin):
         
         # check if titles need refreshing
         refresh_notes_list = False
-        prev_title = None
-        prev_modifydate = None
-        prev_pinned = 0
+        prev_sort_key = None
+
         for i,o in enumerate(self.notes_list_model.list):
             # order should be the same as our listbox
             nt = utils.get_note_title(o.note)
@@ -1205,29 +1215,20 @@ class View(utils.SubjectMixin):
                 refresh_notes_list = True
                 break
 
-            if self.config.sort_mode == 0:
-                # alpha
-                if prev_title is not None and prev_title > nt:
-                    logging.debug("alpha resort triggered")
-                    refresh_notes_list = True
-                    break
+            group = self.notes_list.note_group_func(o.note)
+            old_group = self.notes_list.get_group(i)
+            if group != old_group:
+                # we log the title
+                logging.debug('group "%s" resync' % (nt,))
+                refresh_notes_list = True
+                break
                 
-                prev_title = nt
-                
-            else:
-
-                # we go from top to bottom, newest to oldest
-                # this means that prev_modifydate (above) needs to be larger
-                # than md (below). if it's not, re-sort.
-                if prev_modifydate is not None and prev_modifydate < md and \
-                   not prev_pinned:
-                    logging.debug("modifydate resort triggered")
-                    refresh_notes_list = True
-                    break
-                
-                prev_modifydate = md
-                if self.config.pinned_ontop:
-                    prev_pinned = utils.note_pinned(o.note)
+            sort_key = self.notes_list.note_sort_key_func(o.note)
+            if prev_sort_key is not None and prev_sort_key > sort_key:
+                logging.debug('sort key resort triggered')
+                refresh_notes_list = True
+                break
+            prev_sort_key = sort_key
             
         if refresh_notes_list:
             self.refresh_notes_list()

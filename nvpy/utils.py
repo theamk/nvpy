@@ -122,23 +122,44 @@ def sanitise_tags(tags):
     else:
         return illegals_removed.split(',')
 
-
-
-def sort_by_title_pinned(a, b):
-    if note_pinned(a.note) and not note_pinned(b.note):
-        return -1
-    elif not note_pinned(a.note) and note_pinned(b.note):
-        return 1
+def get_note_group_func(config):
+    """Given a config, return a function which takes a note dict
+    and returns a group (always as a string)
+    """
+    if config.group_mode == 1:
+        # Group is made from all tags
+        return lambda note: ",".join(sorted(note.get('tags', [])))
+    elif config.group_mode == 2:
+        # Group is made from all tags which start from slash
+        return lambda note: ",".join(sorted(
+                tag for tag in note.get('tags', [])
+                if tag.startswith('/')))
     else:
-        return cmp(get_note_title(a.note), get_note_title(b.note))
+        # No groups
+        return lambda note: ""
 
-def sort_by_modify_date_pinned(a, b):
-    if note_pinned(a.note) and not note_pinned(b.note):
-        return 1
-    elif not note_pinned(a.note) and note_pinned(b.note):
-        return -1
+def get_note_sort_key_func(config):
+    """Return a function which takes a note object (as received from server),
+    and returns a sort order key
+    """
+
+    group_func = get_note_group_func(config)
+
+    if config.pinned_ontop == 0:
+        # always pretend note is not pinned
+        pinned_func = lambda note: 0
     else:
-        return cmp(float(a.note.get('modifydate', 0)), float(b.note.get('modifydate', 0)))
+        pinned_func = note_pinned
+
+    if config.sort_mode == 0:
+        # sort alphabetically on title
+        return lambda note: (group_func(note),
+                             -pinned_func(note),
+                             get_note_title(note))
+    else:
+        return lambda note: (group_func(note),
+                             -pinned_func(note),
+                             -float(o.note.get('modifydate', 0)))
 
 class KeyValueObject:
     """Store key=value pairs in this object and retrieve with o.key.
