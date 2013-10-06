@@ -707,7 +707,8 @@ class NotesDB(utils.SubjectMixin):
                         
                     self.notify_observers('progress:sync_full', utils.KeyValueObject(msg='Synced modified note %d to server.' % (ni,)))
                         
-                else:
+                else:          
+                    logging.error('Could not update note %r to server: %s' % (lk, uret[0]))
                     raise SyncError("Sync step 1 error - Could not update note to server")
              
         # 2. if remote syncnum > local syncnum, update our note; if key is new, add note to local.
@@ -719,6 +720,7 @@ class NotesDB(utils.SubjectMixin):
             self.notify_observers('progress:sync_full', utils.KeyValueObject(msg='Retrieved full note list from server.'))
             
         else:
+            logging.error('Could not get note list from server: %s' % (nl[0], ))
             raise SyncError('Could not get note list from server.')
         
         server_keys = {}
