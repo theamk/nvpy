@@ -215,19 +215,8 @@ class NotesDB(utils.SubjectMixin):
         else:
             filtered_notes, match_regexp, active_notes = self.filter_notes_gstyle(search_string)
 
-        if self.config.sort_mode == 0:
-            if self.config.pinned_ontop == 0:
-                # sort alphabetically on title
-                filtered_notes.sort(key=lambda o: utils.get_note_title(o.note))
-            else:
-                filtered_notes.sort(utils.sort_by_title_pinned)
-
-        else:
-            if self.config.pinned_ontop == 0:
-                # last modified on top
-                filtered_notes.sort(key=lambda o: -float(o.note.get('modifydate', 0)))
-            else:
-                filtered_notes.sort(utils.sort_by_modify_date_pinned, reverse=True)
+        key_func = utils.get_note_sort_key_func(self.config)
+        filtered_notes.sort(key=lambda o: key_func(o.note))
 
         return filtered_notes, match_regexp, active_notes
 
