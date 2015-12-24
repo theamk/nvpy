@@ -159,7 +159,7 @@ def get_note_sort_key_func(config):
     else:
         return lambda note: (group_func(note),
                              -pinned_func(note),
-                             -float(o.note.get('modifydate', 0)))
+                             -float(note.get('modifydate', 0)))
 
 class KeyValueObject:
     """Store key=value pairs in this object and retrieve with o.key.
