@@ -208,6 +208,7 @@ class NotesList(tk.Frame):
     MODIFYDATE_COL = 2
     PINNED_COL = 3
     CREATEDATE_COL = 4
+    GROUP_COL = 5
 
     def __init__(self, master, font_family, font_size, config):
         tk.Frame.__init__(self, master)
@@ -262,11 +263,13 @@ class NotesList(tk.Frame):
 
         self.layout = config.layout
         self.print_columns = config.print_columns
+        self.config = config
         if bold_font.measure(' ') > f.measure(' '):
             self.cwidth = bold_font.measure(' ')
         else:
             self.cwidth = f.measure(' ')
         self.fonts = [f, italic_font, bold_font]
+
 
     def append(self, note, config):
         """
@@ -278,7 +281,9 @@ class NotesList(tk.Frame):
         modifydate = float(note.get('modifydate'))
         pinned = utils.note_pinned(note)
         createdate = float(note.get('createdate'))
-        self.note_headers.append((title, tags, modifydate, pinned, createdate))
+        note_group_func = utils.get_note_group_func(self.config)
+        group = note_group_func(note)
+        self.note_headers.append((title, tags, modifydate, pinned, createdate, group))
 
         self.enable_text()
 
@@ -430,6 +435,14 @@ class NotesList(tk.Frame):
         @returns: createdate as a floating point timestamp.
         """
         return self.note_headers[idx][NotesList.CREATEDATE_COL]
+
+    def get_group(self, idx):
+        """
+        Return group of idx'th note.
+
+        @returns: group as a string ('' if groups are disabled)
+        """
+        return self.note_headers[idx][NotesList.GROUP_COL]
 
     def idx_to_index_range(self, idx):
         """
@@ -1192,6 +1205,7 @@ class View(utils.SubjectMixin):
         prev_sort_key = None
 
         sort_key_func = utils.get_kvo_sort_key_func(self.config)
+        note_group_func = utils.get_note_group_func(self.config)
 
         for i, o in enumerate(self.notes_list_model.list):
             # order should be the same as our listbox
@@ -1235,6 +1249,14 @@ class View(utils.SubjectMixin):
             if tags != old_tags:
                 # we log the title
                 logging.debug('tags "%s" resync' % (nt,))
+                refresh_notes_list = True
+                break
+
+            group = note_group_func(o.note)
+            old_group = self.notes_list.get_group(i)
+            if group != old_group:
+                # we log the title
+                logging.debug('group "%s" resync' % (nt,))
                 refresh_notes_list = True
                 break
 

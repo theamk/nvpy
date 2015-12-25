@@ -130,10 +130,29 @@ def sanitise_tags(tags):
         return illegals_removed.split(',')
 
 
+def get_note_group_func(config):
+    """Given a config, return a function which takes a note dict
+    and returns a group (always as a string)
+    """
+    if config.group_mode == 1:
+        # Group is made from all tags
+        return lambda note: ",".join(sorted(note.get('tags', [])))
+    elif config.group_mode == 2:
+        # Group is made from all tags which start from slash
+        return lambda note: ",".join(sorted(
+            tag for tag in note.get('tags', [])
+            if tag.startswith('/')))
+    else:
+        # No groups
+        return lambda note: ""
+
+
 def get_note_sort_key_func(config):
     """Return a function which takes a note object (as received from server),
     and returns a sort order key
     """
+
+    group_func = get_note_group_func(config)
 
     if config.pinned_ontop == 0:
         # always pretend note is not pinned
@@ -143,15 +162,18 @@ def get_note_sort_key_func(config):
 
     if config.sort_mode == 0:
         # sort alphabetically on title
-        return lambda note: (-pinned_func(note),
+        return lambda note: (group_func(note),
+                             -pinned_func(note),
                              get_note_title(note))
     elif config.sort_mode == 2:
         # sort by creation date
-        return lambda note: (-pinned_func(note),
+        return lambda note: (group_func(note),
+                             -pinned_func(note),
                              -float(note.get('createdate', 0)))
     else:
         # sort by modification date
-        return lambda note: (-pinned_func(note),
+        return lambda note: (group_func(note),
+                             -pinned_func(note),
                              -float(note.get('modifydate', 0)))
 
 def get_kvo_sort_key_func(config):

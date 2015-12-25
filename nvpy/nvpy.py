@@ -99,6 +99,7 @@ class Config:
                     'background_color': 'white',
                     'sn_username': '',
                     'sn_password': '',
+                    'group_mode': '0',
                     'simplenote_sync': '1',
                     'debug': '1',
                     # Filename or filepath to a css file used style the rendered
@@ -149,6 +150,7 @@ class Config:
         self.case_sensitive = cp.getint(cfg_sec, 'case_sensitive')
         self.search_tags = cp.getint(cfg_sec, 'search_tags')
         self.sort_mode = cp.getint(cfg_sec, 'sort_mode')
+        self.group_mode = cp.getint(cfg_sec, 'group_mode')
         self.pinned_ontop = cp.getint(cfg_sec, 'pinned_ontop')
         self.housekeeping_interval = cp.getint(cfg_sec, 'housekeeping_interval')
         self.housekeeping_interval_ms = self.housekeeping_interval * 1000
