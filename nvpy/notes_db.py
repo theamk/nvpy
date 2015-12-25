@@ -731,7 +731,8 @@ class NotesDB(utils.SubjectMixin):
             self.notify_observers('progress:sync_full', utils.KeyValueObject(msg='Retrieved full note list from server.'))
 
         else:
-            raise SyncError('Could not get note list from server.')
+            logging.error('Could not get note list from server: %s' % (nl[0]))
+            raise SyncError('Could not get note list from server')
 
         server_keys = {}
         lennl = len(nl)
