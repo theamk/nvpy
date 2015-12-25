@@ -130,31 +130,35 @@ def sanitise_tags(tags):
         return illegals_removed.split(',')
 
 
-def sort_by_title_pinned(a, b):
-    if note_pinned(a.note) and not note_pinned(b.note):
-        return -1
-    elif not note_pinned(a.note) and note_pinned(b.note):
-        return 1
+def get_note_sort_key_func(config):
+    """Return a function which takes a note object (as received from server),
+    and returns a sort order key
+    """
+
+    if config.pinned_ontop == 0:
+        # always pretend note is not pinned
+        pinned_func = lambda note: 0
     else:
-        return cmp(get_note_title(a.note), get_note_title(b.note))
+        pinned_func = note_pinned
 
-
-def sort_by_modify_date_pinned(a, b):
-    if note_pinned(a.note) and not note_pinned(b.note):
-        return 1
-    elif not note_pinned(a.note) and note_pinned(b.note):
-        return -1
+    if config.sort_mode == 0:
+        # sort alphabetically on title
+        return lambda note: (-pinned_func(note),
+                             get_note_title(note))
+    elif config.sort_mode == 2:
+        # sort by creation date
+        return lambda note: (-pinned_func(note),
+                             -float(note.get('createdate', 0)))
     else:
-        return cmp(float(a.note.get('modifydate', 0)), float(b.note.get('modifydate', 0)))
+        # sort by modification date
+        return lambda note: (-pinned_func(note),
+                             -float(note.get('modifydate', 0)))
 
-def sort_by_create_date_pinned(a, b):
-    if note_pinned(a.note) and not note_pinned(b.note):
-        return 1
-    elif not note_pinned(a.note) and note_pinned(b.note):
-        return -1
-    else:
-        return cmp(float(a.note.get('createdate', 0)), float(b.note.get('createdate', 0)))
-
+def get_kvo_sort_key_func(config):
+    """Returns a function with takes KeyValueObject with note= parameter
+    and returns a sort order key"""
+    note_func = get_note_sort_key_func(config)
+    return lambda o: note_func(o.note)
 
 class KeyValueObject:
     """Store key=value pairs in this object and retrieve with o.key.

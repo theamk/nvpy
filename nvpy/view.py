@@ -992,9 +992,7 @@ class View(utils.SubjectMixin):
                 list_frame,
                 self.config.list_font_family,
                 self.config.list_font_size,
-                utils.KeyValueObject(background_color=self.config.background_color,
-                    layout=self.config.layout,
-                    print_columns=self.config.print_columns))
+                self.config)
             self.notes_list.pack(fill=tk.BOTH, expand=1)
 
             note_frame = tk.Frame(paned_window, width=400)
@@ -1191,10 +1189,10 @@ class View(utils.SubjectMixin):
 
         # check if titles need refreshing
         refresh_notes_list = False
-        prev_title = None
-        prev_createdate = None
-        prev_modifydate = None
-        prev_pinned = 0
+        prev_sort_key = None
+
+        sort_key_func = utils.get_kvo_sort_key_func(self.config)
+
         for i, o in enumerate(self.notes_list_model.list):
             # order should be the same as our listbox
             nt = utils.get_note_title(o.note)
@@ -1240,40 +1238,12 @@ class View(utils.SubjectMixin):
                 refresh_notes_list = True
                 break
 
-            if self.config.sort_mode == 0:
-                # alpha
-                if prev_title is not None and prev_title > nt:
-                    logging.debug("alpha resort triggered")
-                    refresh_notes_list = True
-                    break
-
-                prev_title = nt
-
-            elif self.config.sort_mode == 2:
-                if prev_createdate is not None and prev_createdate < cd and \
-                   not prev_pinned:
-                    logging.debug("createdate resort triggered %d > %d" % (cd, prev_createdate))
-                    refresh_notes_list = True
-                    break
-
-                prev_createdate = cd
-                if self.config.pinned_ontop:
-                    prev_pinned = utils.note_pinned(o.note)
-
-            else:
-
-                # we go from top to bottom, newest to oldest
-                # this means that prev_modifydate (above) needs to be larger
-                # than md (below). if it's not, re-sort.
-                if prev_modifydate is not None and prev_modifydate < md and \
-                   not prev_pinned:
-                    logging.debug("modifydate resort triggered")
-                    refresh_notes_list = True
-                    break
-
-                prev_modifydate = md
-                if self.config.pinned_ontop:
-                    prev_pinned = utils.note_pinned(o.note)
+            sort_key = sort_key_func(o)
+            if prev_sort_key is not None and prev_sort_key > sort_key:
+                logging.debug('sort key resort triggered')
+                refresh_notes_list = True
+                break
+            prev_sort_key = sort_key
 
         if refresh_notes_list:
             self.refresh_notes_list()
